@@ -224,6 +224,7 @@ int vtlClose()
     return 1;
   }
 
+  delete tube;
   delete synthesizer;
   delete tdsModel;
 

@@ -8,13 +8,11 @@ model and the function vtlSynthesisAddTract(...).
 
     This example uses ``ctypes`` and is very close to the vocaltractlab API.
     This comes with breaking with some standard assumptions one have in python.
-    If one wants a more pythonic experience use the ``pyvtl`` wrapper in order
-    to use vocaltractlab from python. (pyvtl does not exist yet)
 
 If you are not aware of ``ctypes`` read the following introduction
 https://docs.python.org/3/library/ctypes.html
 
-For an in-depth API description look at the `VocalTractLabApi64.h`.
+For an in-depth API description look at the `../include/VocalTractLabApi/VocalTractLabApi.h`.
 
 For plotting and saving results you need to install ``matplotlib``, ``numpy``,
 and ``scipy``.
@@ -40,16 +38,18 @@ except ImportError:
 
 
 # load vocaltractlab binary
-_FILE_ENDING = ''
+PREFIX = 'lib'
+SUFFIX = ''
 if sys.platform.startswith('linux'):
-    _FILE_ENDING = '.so'
+    SUFFIX = '.so'
 elif sys.platform.startswith('win32'):
-    _FILE_ENDING = '.dll'
+    PREFIX = ''
+    SUFFIX = '.dll'
 elif sys.platform.startswith('darwin'):
-    _FILE_ENDING = '.dylib'
+    SUFFIX = '.dylib'
 
-VTL = ctypes.cdll.LoadLibrary('../lib/libVocalTractLabApi' + _FILE_ENDING)
-del _FILE_ENDING
+VTL = ctypes.cdll.LoadLibrary(f'../lib/Release/{PREFIX}VocalTractLabApi{SUFFIX}')
+del PREFIX, SUFFIX
 
 
 # get version / compile date
@@ -71,16 +71,26 @@ audio_sampling_rate = ctypes.c_int(0)
 number_tube_sections = ctypes.c_int(0)
 number_vocal_tract_parameters = ctypes.c_int(0)
 number_glottis_parameters = ctypes.c_int(0)
+number_audio_samples_per_tract_state = ctypes.c_int(0)
+internal_sampling_rate = ctypes.c_double(0)
 
-VTL.vtlGetConstants(ctypes.byref(audio_sampling_rate),
-                    ctypes.byref(number_tube_sections),
-                    ctypes.byref(number_vocal_tract_parameters),
-                    ctypes.byref(number_glottis_parameters))
+failure = VTL.vtlGetConstants(
+        ctypes.byref(audio_sampling_rate),
+        ctypes.byref(number_tube_sections),
+        ctypes.byref(number_vocal_tract_parameters),
+        ctypes.byref(number_glottis_parameters),
+        ctypes.byref(number_audio_samples_per_tract_state),
+        ctypes.byref(internal_sampling_rate))
+
+if failure != 0:
+    raise ValueError('Error in vtlGetConstants! Errorcode: %i' % failure)
 
 print('Audio sampling rate = %i' % audio_sampling_rate.value)
 print('Num. of tube sections = %i' % number_tube_sections.value)
 print('Num. of vocal tract parameters = %i' % number_vocal_tract_parameters.value)
 print('Num. of glottis parameters = %i' % number_glottis_parameters.value)
+print('Num. of audio samples per tract state = %i' % number_audio_samples_per_tract_state.value)
+print('Internal sampling rate = %d' % internal_sampling_rate.value)
 
 
 # get information about the parameters of the vocal tract model
@@ -162,12 +172,10 @@ del shape_name
 #
 # *****************************************************************************
 
-audio1 = (ctypes.c_double * int(1000))()
-audio2 = (ctypes.c_double * int(10000))()
-audio3 = (ctypes.c_double * int(10000))()
-audio4 = (ctypes.c_double * int(10000))()
-
-audio = [(ctypes.c_double * int(1000))(),(ctypes.c_double * int(10000))(),(ctypes.c_double * int(10000))(),(ctypes.c_double * int(10000))()]
+audios = [(ctypes.c_double * int(1000))(),
+          (ctypes.c_double * int(10000))(),
+          (ctypes.c_double * int(10000))(),
+          (ctypes.c_double * int(10000))()]
 
 
 glottis_params = glottis_param_neutral
@@ -180,22 +188,22 @@ VTL.vtlSynthesisReset()
 # Submit the initial vocal tract shape (numSamples=0) with P_sub = 0
 glottis_params[1] = 0  # P_sub = 0 dPa
 
-VTL.vtlSynthesisAddTract( 0, ctypes.byref(audio[0]), ctypes.byref(params_i), ctypes.byref(glottis_params) )
+VTL.vtlSynthesisAddTract(0, ctypes.byref(audios[0]), ctypes.byref(params_i), ctypes.byref(glottis_params))
 
 
 # Ramp up the subglottal pressure within 1000 samples
 glottis_params[1] = 8000  # P_sub = 8000 dPa
-VTL.vtlSynthesisAddTract( 1000, ctypes.byref(audio[0]), ctypes.byref(params_i), ctypes.byref(glottis_params) )
+VTL.vtlSynthesisAddTract(1000, ctypes.byref(audios[0]), ctypes.byref(params_i), ctypes.byref(glottis_params))
 
 # Make transitions between /a/ and /i/
-VTL.vtlSynthesisAddTract( 10000, ctypes.byref(audio[1]), ctypes.byref(params_a), ctypes.byref(glottis_params) )
+VTL.vtlSynthesisAddTract(10000, ctypes.byref(audios[1]), ctypes.byref(params_a), ctypes.byref(glottis_params))
 
-VTL.vtlSynthesisAddTract( 10000, ctypes.byref(audio[2]), ctypes.byref(params_i), ctypes.byref(glottis_params) )
+VTL.vtlSynthesisAddTract(10000, ctypes.byref(audios[2]), ctypes.byref(params_i), ctypes.byref(glottis_params))
 
-VTL.vtlSynthesisAddTract( 10000, ctypes.byref(audio[3]), ctypes.byref(params_a), ctypes.byref(glottis_params) )
+VTL.vtlSynthesisAddTract(10000, ctypes.byref(audios[3]), ctypes.byref(params_a), ctypes.byref(glottis_params))
 
 _wav = []
-for wave in audio:
+for wave in audios:
     _wav.extend(list(wave))
 
 

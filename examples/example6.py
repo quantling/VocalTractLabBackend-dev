@@ -5,16 +5,18 @@ import shutil
 
 
 # load vocaltractlab binary
-_FILE_ENDING = ''
+PREFIX = 'lib'
+SUFFIX = ''
 if sys.platform.startswith('linux'):
-    _FILE_ENDING = '.so'
+    SUFFIX = '.so'
 elif sys.platform.startswith('win32'):
-    _FILE_ENDING = '.dll'
+    PREFIX = ''
+    SUFFIX = '.dll'
 elif sys.platform.startswith('darwin'):
-    _FILE_ENDING = '.dylib'
+    SUFFIX = '.dylib'
 
-VTL = ctypes.cdll.LoadLibrary('../lib/libVocalTractLabApi' + _FILE_ENDING)
-del _FILE_ENDING
+VTL = ctypes.cdll.LoadLibrary(f'../lib/Release/{PREFIX}VocalTractLabApi{SUFFIX}')
+del PREFIX, SUFFIX
 
 
 # get version / compile date
@@ -36,11 +38,15 @@ if failure != 0:
 
 print("Part 1: Synthesize gestural score as reference")
 speaker_file_name = ctypes.c_char_p('../resources/JD3.speaker'.encode())
+segment_file_name = ctypes.c_char_p(b'apfelsine.seg')
 gesture_file_name = ctypes.c_char_p('apfelsine.ges'.encode())
 wav_file_name = ctypes.c_char_p('apfelsine.wav'.encode())
 feedback_file_name = ctypes.c_char_p('apfelsine.txt'.encode())
 
 VTL.vtlInitialize(speaker_file_name)
+failure = VTL.vtlSegmentSequenceToGesturalScore(segment_file_name, gesture_file_name)
+if failure != 0:
+    raise ValueError('Error in vtlSegmentSequenceToGesturalScore! Errorcode: %i' % failure)
 failure = VTL.vtlGesturalScoreToAudio(gesture_file_name,  # input
                           wav_file_name,  # output can be empty string "", if
                                           # you don't want to save audio to file
@@ -49,7 +55,6 @@ failure = VTL.vtlGesturalScoreToAudio(gesture_file_name,  # input
                           1)  # enableConsoleOutput
 if failure != 0:
     raise ValueError('Error in vtlGesturalScoreToAudio! Errorcode: %i' % failure)
-    #print('Error in vtlGesturalScoreToAudio! Errorcode: %i' % failure)
 VTL.vtlClose()
 
 
@@ -62,7 +67,6 @@ failure = VTL.vtlGesturalScoreToEma(gesture_file_name,  # input
                           ema_file_name)  # output
 if failure != 0:
     raise ValueError('Error in vtlGesturalScoreToEma! Errorcode: %i' % failure)
-    #print('Error in vtlGesturalScoreToEma! Errorcode: %i' % failure)
 VTL.vtlClose()
 
 
@@ -81,22 +85,26 @@ VTL.vtlClose()
 
 if failure != 0:
     raise ValueError('Error in vtlGesturalScoreToEmaAndMesh! Errorcode: %i' % failure)
-    #print('Error in vtlGesturalScoreToEmaAndMesh! Errorcode: %i' % failure)
 
 
 print("Part 4: Visualize mesh and ema points interactively")
-
-# NOTE: for this part you need `blender` and the python packages `pyglet` and
-# `pywavefront`.
+print("NOTE: for this part you need `blender` and the python packages "
+      "`pyglet` and `pywavefront`.")
 
 # You need to have generated the meshes and ema export with Part 3!
 
 # change the `convert_directory.py` to your liking and then execute it on the
 # Terminal with blender
-os.system('blender --background --python Meshes/convert_directory.py 1> /dev/null')
+if sys.platform.startswith('win32'):
+    os.system(r'C:\Program Files\Blender Foundation\Blender 3.0\blender.exe --background --python Meshes/convert_directory.py')
+else:
+    os.system('blender --background --python Meshes/convert_directory.py 1> /dev/null')
 
 # now you can visualize the meshes interactively by executing the animation.py
-os.system('python Meshes/animation.py')
+if sys.platform.startswith('win32'):
+    os.system('python.exe Meshes/animation.py')
+else:
+    os.system('python Meshes/animation.py')
 
 # this pops up a new window with the animation and gives some output in the Terminal
 

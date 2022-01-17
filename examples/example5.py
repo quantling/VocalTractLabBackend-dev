@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-This example simply shows how to 
+This example simply shows how to
 
  - transform a segment sequence file into a gestural score file,
  - transform the gestural score file into a tract parameter sequence file,
@@ -17,16 +17,18 @@ import sys
 
 
 # load vocaltractlab binary
-_FILE_ENDING = ''
+PREFIX = 'lib'
+SUFFIX = ''
 if sys.platform.startswith('linux'):
-    _FILE_ENDING = '.so'
+    SUFFIX = '.so'
 elif sys.platform.startswith('win32'):
-    _FILE_ENDING = '.dll'
+    PREFIX = ''
+    SUFFIX = '.dll'
 elif sys.platform.startswith('darwin'):
-    _FILE_ENDING = '.dylib'
+    SUFFIX = '.dylib'
 
-VTL = ctypes.cdll.LoadLibrary('../lib/libVocalTractLabApi' + _FILE_ENDING)
-del _FILE_ENDING
+VTL = ctypes.cdll.LoadLibrary(f'../lib/Release/{PREFIX}VocalTractLabApi{SUFFIX}')
+del PREFIX, SUFFIX
 
 
 # get version / compile date
