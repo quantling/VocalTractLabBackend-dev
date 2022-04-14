@@ -273,7 +273,7 @@ int vtlCalcTongueRootAutomatically(bool automaticCalculation)
 
 void vtlGetVersion(char *version)
 {
-  strcpy(version, "API 2.5.1quantling ");
+  strcpy(version, "API 2.5.2quantling ");
   strcat(version, __DATE__);
 }
 
