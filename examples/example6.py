@@ -96,6 +96,7 @@ print("NOTE: for this part you need `blender` and the python packages "
 # change the `convert_directory.py` to your liking and then execute it on the
 # Terminal with blender
 if sys.platform.startswith('win32'):
+    command = r'"D:\Program Files\Blender Foundation\Blender 3.0\blender.exe" --background --python Meshes/convert_directory.py'
     print(f"check that the following command points to the right Blender installation (if not change the line in example6.py):\n\n{command}")
     os.system(command)
 else:
